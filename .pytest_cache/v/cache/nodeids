@@ -1,8 +1,0 @@
-[
-  "tests/test_storage.py::test_record_grosses_round_trip",
-  "tests/test_storage.py::test_upsert_movie_insert_and_update",
-  "tests/test_tmdb.py::test_all_pages_collects_results",
-  "tests/test_tmdb.py::test_missing_token_raises_clear_error",
-  "tests/test_tmdb.py::test_movie_details_endpoint",
-  "tests/test_tmdb.py::test_now_playing_uses_bearer_and_endpoint"
-]
