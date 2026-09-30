@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Box Office Tracker</title>
+<style>
+:root{
+  --bg0:#070b16; --bg1:#0d1428;
+  --card:rgba(255,255,255,.045); --border:rgba(255,255,255,.09);
+  --text:#eef2ff; --muted:#9aa4c0;
+  --gold:#f5c518; --violet:#8b5cf6; --cyan:#22d3ee;
+  --radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:var(--text); min-height:100vh;
+  background:
+    radial-gradient(900px 480px at 12% -8%, rgba(139,92,246,.22), transparent 60%),
+    radial-gradient(800px 420px at 88% 4%, rgba(34,211,238,.14), transparent 60%),
+    radial-gradient(700px 500px at 50% 110%, rgba(245,197,24,.08), transparent 60%),
+    linear-gradient(180deg,var(--bg1),var(--bg0));
+  padding:0 20px 60px;
+}
+.wrap{max-width:1180px;margin:0 auto}
+.hero{padding:64px 0 10px;text-align:center}
+.hero .kicker{letter-spacing:.35em;text-transform:uppercase;font-size:12px;color:var(--cyan)}
+.sample-banner{display:inline-block;margin-top:14px;padding:8px 18px;border-radius:999px;
+  background:rgba(245,197,24,.12);border:1px solid rgba(245,197,24,.45);color:var(--gold);
+  font-size:.85rem;font-weight:600}
+.hero h1{font-size:clamp(2.4rem,6vw,4.2rem);font-weight:800;line-height:1.05;margin:14px 0 10px}
+.hero h1 .grad{background:linear-gradient(92deg,var(--gold),#ff8a3d 55%,var(--violet));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--muted);font-size:1.05rem}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:34px 0}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:22px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  transition:transform .25s ease, box-shadow .25s ease}
+.stat:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.stat .num{font-size:2rem;font-weight:800}
+.stat .num.gold{color:var(--gold)} .stat .num.cyan{color:var(--cyan)}
+.stat .lbl{color:var(--muted);font-size:.85rem;margin-top:6px;text-transform:uppercase;letter-spacing:.12em}
+section{margin:44px 0}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:18px}
+.sec-head h2{font-size:1.5rem;font-weight:750}
+.sec-head .muted{font-size:.9rem}
+.muted{color:var(--muted)} .empty{padding:26px;text-align:center}
+.search{width:100%;max-width:420px;padding:12px 18px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);
+  font-size:1rem;outline:none;transition:border-color .2s, box-shadow .2s}
+.search:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.18)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px}
+.movie-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  transition:transform .28s ease, box-shadow .28s ease, border-color .28s ease}
+.movie-card:hover{transform:translateY(-8px) scale(1.015);
+  box-shadow:0 24px 55px rgba(0,0,0,.55), 0 0 0 1px rgba(245,197,24,.25);
+  border-color:rgba(245,197,24,.35)}
+.poster-wrap{position:relative;aspect-ratio:2/3;background:#141b33;overflow:hidden}
+.poster{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
+.movie-card:hover .poster{transform:scale(1.06)}
+.poster-fallback{display:flex;align-items:center;justify-content:center;height:100%;
+  padding:20px;text-align:center;color:var(--muted);font-weight:700}
+.rating-badge{position:absolute;top:10px;left:10px;background:rgba(7,11,22,.82);
+  border:1px solid rgba(245,197,24,.55);color:var(--gold);font-weight:800;font-size:.85rem;
+  padding:5px 10px;border-radius:999px;backdrop-filter:blur(6px)}
+.card-body{padding:14px 14px 16px}
+.card-body h3{font-size:1rem;font-weight:700;line-height:1.3;margin-bottom:6px}
+.card-body .muted{font-size:.82rem}
+.card-body .money{margin-top:8px;font-size:.85rem;color:var(--muted)}
+.card-body .money strong{color:var(--gold)}
+.strip{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 16px;scroll-snap-type:x mandatory}
+.strip::-webkit-scrollbar{height:8px}
+.strip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:99px}
+.trend-chip{flex:0 0 300px;display:flex;gap:12px;align-items:center;
+  background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px;
+  scroll-snap-align:start;backdrop-filter:blur(12px);
+  transition:transform .25s ease, border-color .25s ease}
+.trend-chip:hover{transform:translateY(-4px);border-color:rgba(34,211,238,.4)}
+.trend-chip img{width:56px;height:84px;object-fit:cover;border-radius:8px}
+.chip-fallback{width:56px;height:84px;border-radius:8px;background:#1a2340;
+  display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--muted);
+  text-align:center;padding:4px}
+.chip-body strong{display:block;font-size:.92rem;margin-bottom:4px}
+.chip-body .muted{font-size:.8rem}
+.bar-row{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px 18px;margin-bottom:12px;backdrop-filter:blur(12px)}
+.bar-label{font-weight:700;margin-bottom:10px}
+.bar-line{display:grid;grid-template-columns:64px 1fr 76px;align-items:center;gap:10px;margin:7px 0}
+.bar-tag{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.track{height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.fill{height:100%;width:0;border-radius:99px;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.fill.budget{background:linear-gradient(90deg,#6d28d9,var(--violet))}
+.fill.revenue{background:linear-gradient(90deg,#b98a12,var(--gold))}
+.bar-val{font-size:.85rem;font-weight:700;text-align:right}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;backdrop-filter:blur(14px)}
+.pill{display:inline-block;margin:6px 8px 6px 0;padding:9px 16px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:.9rem}
+.pill strong{color:var(--cyan)}
+footer{margin-top:56px;text-align:center;color:var(--muted);font-size:.82rem;line-height:1.7}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.rise{animation:rise .65s cubic-bezier(.2,.7,.2,1) both}
+@media (max-width:680px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .bar-line{grid-template-columns:56px 1fr 64px}
+  .hero{padding-top:44px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero rise">
+    <div class="kicker">Demand tracking</div>
+    <h1>Box Office <span class="grad">Tracker</span></h1>
+    <p>Now playing, trending, budgets and revenue. Snapshot generated 2026-09-30 19:53 UTC.</p>
+    <div class="sample-banner">Sample data for design preview. Rebuild without --sample for live figures.</div>
+  </header>
+
+  <div class="stats">
+    <div class="stat rise" style="animation-delay:60ms">
+      <div class="num gold" data-count="8">0</div>
+      <div class="lbl">Now playing</div>
+    </div>
+    <div class="stat rise" style="animation-delay:120ms">
+      <div class="num cyan" data-count="0">0</div>
+      <div class="lbl">Trending this week</div>
+    </div>
+    <div class="stat rise" style="animation-delay:180ms">
+      <div class="num" data-count="7.8" data-dec="1">0</div>
+      <div class="lbl">Average rating</div>
+    </div>
+    <div class="stat rise" style="animation-delay:240ms">
+      <div class="num gold">$9.8B</div>
+      <div class="lbl">Tracked revenue</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <h2>Now Playing</h2>
+      <input id="search" class="search" type="search"
+             placeholder="Filter movies by title" aria-label="Filter movies">
+    </div>
+    <div class="grid" id="grid">
+    <article class="movie-card rise" style="animation-delay:0ms"
+             data-search="dune: part two paul atreides unites with the fremen for war against house harkonnen.">
+      <div class="poster-wrap"><div class="poster poster-fallback">Dune: Part Two</div>
+        <span class="rating-badge">8.2</span>
+      </div>
+      <div class="card-body">
+        <h3>Dune: Part Two</h3>
+        <p class="muted">2024-03-01</p>
+        <p class="money">Revenue <strong>$714M</strong></p>
+      </div>
+    </article>
+
+    <article class="movie-card rise" style="animation-delay:45ms"
+             data-search="oppenheimer the story of j. robert oppenheimer and the atomic bomb.">
+      <div class="poster-wrap"><div class="poster poster-fallback">Oppenheimer</div>
+        <span class="rating-badge">8.1</span>
+      </div>
+      <div class="card-body">
+        <h3>Oppenheimer</h3>
+        <p class="muted">2023-07-19</p>
+        <p class="money">Revenue <strong>$976M</strong></p>
+      </div>
+    </article>
+
+    <article class="movie-card rise" style="animation-delay:90ms"
+             data-search="barbie barbie leaves barbie land for the real world.">
+      <div class="poster-wrap"><div class="poster poster-fallback">Barbie</div>
+        <span class="rating-badge">7.0</span>
+      </div>
+      <div class="card-body">
+        <h3>Barbie</h3>
+        <p class="muted">2023-07-19</p>
+        <p class="money">Revenue <strong>$1.4B</strong></p>
+      </div>
+    </article>
+
+    <article class="movie-card rise" style="animation-delay:135ms"
+             data-search="spider-man: no way home peter parker seeks doctor strange&#x27;s help as villains return.">
+      <div class="poster-wrap"><div class="poster poster-fallback">Spider-Man: No Way Home</div>
+        <span class="rating-badge">8.0</span>
+      </div>
+      <div class="card-body">
+        <h3>Spider-Man: No Way Home</h3>
+        <p class="muted">2021-12-15</p>
+        <p class="money">Revenue <strong>$1.9B</strong></p>
+      </div>
+    </article>
+
+    <article class="movie-card rise" style="animation-delay:180ms"
+             data-search="avatar: the way of water jake sully and neytiri protect their family on pandora.">
+      <div class="poster-wrap"><div class="poster poster-fallback">Avatar: The Way of Water</div>
+        <span class="rating-badge">7.6</span>
+      </div>
+      <div class="card-body">
+        <h3>Avatar: The Way of Water</h3>
+        <p class="muted">2022-12-14</p>
+        <p class="money">Revenue <strong>$2.3B</strong></p>
+      </div>
+    </article>
+
+    <article class="movie-card rise" style="animation-delay:225ms"
+             data-search="top gun: maverick maverick trains a new generation of top gun graduates.">
+      <div class="poster-wrap"><div class="poster poster-fallback">Top Gun: Maverick</div>
+        <span class="rating-badge">8.2</span>
+      </div>
+      <div class="card-body">
+        <h3>Top Gun: Maverick</h3>
+        <p class="muted">2022-05-24</p>
+        <p class="money">Revenue <strong>$1.5B</strong></p>
+      </div>
+    </article>
+
+    <article class="movie-card rise" style="animation-delay:270ms"
+             data-search="the batman batman uncovers corruption in gotham city.">
+      <div class="poster-wrap"><div class="poster poster-fallback">The Batman</div>
+        <span class="rating-badge">7.7</span>
+      </div>
+      <div class="card-body">
+        <h3>The Batman</h3>
+        <p class="muted">2022-03-01</p>
+        <p class="money">Revenue <strong>$772M</strong></p>
+      </div>
+    </article>
+
+    <article class="movie-card rise" style="animation-delay:315ms"
+             data-search="everything everywhere all at once a laundromat owner must save the multiverse.">
+      <div class="poster-wrap"><div class="poster poster-fallback">Everything Everywhere All at Once</div>
+        <span class="rating-badge">7.8</span>
+      </div>
+      <div class="card-body">
+        <h3>Everything Everywhere All at Once</h3>
+        <p class="muted">2022-03-24</p>
+        <p class="money">Revenue <strong>$143M</strong></p>
+      </div>
+    </article></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Trending This Week</h2>
+      <span class="muted">TMDB trending movies</span></div>
+    <div class="strip"><p class="muted empty">Trending needs a live TMDB fetch.</p></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Budget vs Revenue</h2>
+      <span class="muted">Top titles by reported revenue</span></div>
+    
+    <div class="bar-row rise" style="animation-delay:0ms">
+      <div class="bar-label">Avatar: The Way of Water</div>
+      <div class="bar-lines">
+        <div class="bar-line"><span class="bar-tag">Budget</span>
+          <div class="track"><div class="fill budget" data-w="10.8"></div></div>
+          <span class="bar-val">$250M</span></div>
+        <div class="bar-line"><span class="bar-tag">Revenue</span>
+          <div class="track"><div class="fill revenue" data-w="100.0"></div></div>
+          <span class="bar-val">$2.3B</span></div>
+      </div>
+    </div>
+
+    <div class="bar-row rise" style="animation-delay:60ms">
+      <div class="bar-label">Spider-Man: No Way Home</div>
+      <div class="bar-lines">
+        <div class="bar-line"><span class="bar-tag">Budget</span>
+          <div class="track"><div class="fill budget" data-w="8.6"></div></div>
+          <span class="bar-val">$200M</span></div>
+        <div class="bar-line"><span class="bar-tag">Revenue</span>
+          <div class="track"><div class="fill revenue" data-w="82.8"></div></div>
+          <span class="bar-val">$1.9B</span></div>
+      </div>
+    </div>
+
+    <div class="bar-row rise" style="animation-delay:120ms">
+      <div class="bar-label">Top Gun: Maverick</div>
+      <div class="bar-lines">
+        <div class="bar-line"><span class="bar-tag">Budget</span>
+          <div class="track"><div class="fill budget" data-w="7.3"></div></div>
+          <span class="bar-val">$170M</span></div>
+        <div class="bar-line"><span class="bar-tag">Revenue</span>
+          <div class="track"><div class="fill revenue" data-w="64.4"></div></div>
+          <span class="bar-val">$1.5B</span></div>
+      </div>
+    </div>
+
+    <div class="bar-row rise" style="animation-delay:180ms">
+      <div class="bar-label">Barbie</div>
+      <div class="bar-lines">
+        <div class="bar-line"><span class="bar-tag">Budget</span>
+          <div class="track"><div class="fill budget" data-w="6.2"></div></div>
+          <span class="bar-val">$145M</span></div>
+        <div class="bar-line"><span class="bar-tag">Revenue</span>
+          <div class="track"><div class="fill revenue" data-w="62.3"></div></div>
+          <span class="bar-val">$1.4B</span></div>
+      </div>
+    </div>
+
+    <div class="bar-row rise" style="animation-delay:240ms">
+      <div class="bar-label">Oppenheimer</div>
+      <div class="bar-lines">
+        <div class="bar-line"><span class="bar-tag">Budget</span>
+          <div class="track"><div class="fill budget" data-w="4.3"></div></div>
+          <span class="bar-val">$100M</span></div>
+        <div class="bar-line"><span class="bar-tag">Revenue</span>
+          <div class="track"><div class="fill revenue" data-w="42.1"></div></div>
+          <span class="bar-val">$976M</span></div>
+      </div>
+    </div>
+
+    <div class="bar-row rise" style="animation-delay:300ms">
+      <div class="bar-label">The Batman</div>
+      <div class="bar-lines">
+        <div class="bar-line"><span class="bar-tag">Budget</span>
+          <div class="track"><div class="fill budget" data-w="8.6"></div></div>
+          <span class="bar-val">$200M</span></div>
+        <div class="bar-line"><span class="bar-tag">Revenue</span>
+          <div class="track"><div class="fill revenue" data-w="33.3"></div></div>
+          <span class="bar-val">$772M</span></div>
+      </div>
+    </div>
+
+    <div class="bar-row rise" style="animation-delay:360ms">
+      <div class="bar-label">Dune: Part Two</div>
+      <div class="bar-lines">
+        <div class="bar-line"><span class="bar-tag">Budget</span>
+          <div class="track"><div class="fill budget" data-w="8.2"></div></div>
+          <span class="bar-val">$190M</span></div>
+        <div class="bar-line"><span class="bar-tag">Revenue</span>
+          <div class="track"><div class="fill revenue" data-w="30.8"></div></div>
+          <span class="bar-val">$714M</span></div>
+      </div>
+    </div>
+
+    <div class="bar-row rise" style="animation-delay:420ms">
+      <div class="bar-label">Everything Everywhere All at Once</div>
+      <div class="bar-lines">
+        <div class="bar-line"><span class="bar-tag">Budget</span>
+          <div class="track"><div class="fill budget" data-w="1.1"></div></div>
+          <span class="bar-val">$25M</span></div>
+        <div class="bar-line"><span class="bar-tag">Revenue</span>
+          <div class="track"><div class="fill revenue" data-w="6.2"></div></div>
+          <span class="bar-val">$143M</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Availability Signals</h2>
+      <span class="muted">Snapshot counts by status</span></div>
+    <div class="panel"><p class="muted empty">No availability snapshots yet. Theaters do not publish seat counts, so this panel tracks sold out and availability signals over time once snapshots exist.</p></div>
+  </section>
+
+  <footer>
+    <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <p>Poster images via TMDB. Availability is a demand proxy: theaters do not
+    publish seat counts. Generated 2026-09-30 19:53 UTC.</p>
+  </footer>
+
+</div>
+<script id="payload" type="application/json">{&quot;generated_at&quot;: &quot;2026-09-30 19:53 UTC&quot;, &quot;sample&quot;: true, &quot;stats&quot;: {&quot;now_playing&quot;: 8, &quot;trending&quot;: 0, &quot;avg_rating&quot;: 7.8, &quot;total_revenue&quot;: 9788000000}, &quot;now_playing&quot;: [{&quot;title&quot;: &quot;Dune: Part Two&quot;, &quot;release_date&quot;: &quot;2024-03-01&quot;, &quot;rating&quot;: 8.2, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 714000000, &quot;budget&quot;: 190000000, &quot;overview&quot;: &quot;Paul Atreides unites with the Fremen for war against House Harkonnen.&quot;}, {&quot;title&quot;: &quot;Oppenheimer&quot;, &quot;release_date&quot;: &quot;2023-07-19&quot;, &quot;rating&quot;: 8.1, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 976000000, &quot;budget&quot;: 100000000, &quot;overview&quot;: &quot;The story of J. Robert Oppenheimer and the atomic bomb.&quot;}, {&quot;title&quot;: &quot;Barbie&quot;, &quot;release_date&quot;: &quot;2023-07-19&quot;, &quot;rating&quot;: 7.0, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 1446000000, &quot;budget&quot;: 145000000, &quot;overview&quot;: &quot;Barbie leaves Barbie Land for the real world.&quot;}, {&quot;title&quot;: &quot;Spider-Man: No Way Home&quot;, &quot;release_date&quot;: &quot;2021-12-15&quot;, &quot;rating&quot;: 8.0, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 1922000000, &quot;budget&quot;: 200000000, &quot;overview&quot;: &quot;Peter Parker seeks Doctor Strange&#x27;s help as villains return.&quot;}, {&quot;title&quot;: &quot;Avatar: The Way of Water&quot;, &quot;release_date&quot;: &quot;2022-12-14&quot;, &quot;rating&quot;: 7.6, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 2320000000, &quot;budget&quot;: 250000000, &quot;overview&quot;: &quot;Jake Sully and Neytiri protect their family on Pandora.&quot;}, {&quot;title&quot;: &quot;Top Gun: Maverick&quot;, &quot;release_date&quot;: &quot;2022-05-24&quot;, &quot;rating&quot;: 8.2, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 1495000000, &quot;budget&quot;: 170000000, &quot;overview&quot;: &quot;Maverick trains a new generation of Top Gun graduates.&quot;}, {&quot;title&quot;: &quot;The Batman&quot;, &quot;release_date&quot;: &quot;2022-03-01&quot;, &quot;rating&quot;: 7.7, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 772000000, &quot;budget&quot;: 200000000, &quot;overview&quot;: &quot;Batman uncovers corruption in Gotham City.&quot;}, {&quot;title&quot;: &quot;Everything Everywhere All at Once&quot;, &quot;release_date&quot;: &quot;2022-03-24&quot;, &quot;rating&quot;: 7.8, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 143000000, &quot;budget&quot;: 25000000, &quot;overview&quot;: &quot;A laundromat owner must save the multiverse.&quot;}], &quot;trending&quot;: [], &quot;bars&quot;: [{&quot;title&quot;: &quot;Avatar: The Way of Water&quot;, &quot;release_date&quot;: &quot;2022-12-14&quot;, &quot;rating&quot;: 7.6, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 2320000000, &quot;budget&quot;: 250000000, &quot;overview&quot;: &quot;Jake Sully and Neytiri protect their family on Pandora.&quot;}, {&quot;title&quot;: &quot;Spider-Man: No Way Home&quot;, &quot;release_date&quot;: &quot;2021-12-15&quot;, &quot;rating&quot;: 8.0, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 1922000000, &quot;budget&quot;: 200000000, &quot;overview&quot;: &quot;Peter Parker seeks Doctor Strange&#x27;s help as villains return.&quot;}, {&quot;title&quot;: &quot;Top Gun: Maverick&quot;, &quot;release_date&quot;: &quot;2022-05-24&quot;, &quot;rating&quot;: 8.2, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 1495000000, &quot;budget&quot;: 170000000, &quot;overview&quot;: &quot;Maverick trains a new generation of Top Gun graduates.&quot;}, {&quot;title&quot;: &quot;Barbie&quot;, &quot;release_date&quot;: &quot;2023-07-19&quot;, &quot;rating&quot;: 7.0, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 1446000000, &quot;budget&quot;: 145000000, &quot;overview&quot;: &quot;Barbie leaves Barbie Land for the real world.&quot;}, {&quot;title&quot;: &quot;Oppenheimer&quot;, &quot;release_date&quot;: &quot;2023-07-19&quot;, &quot;rating&quot;: 8.1, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 976000000, &quot;budget&quot;: 100000000, &quot;overview&quot;: &quot;The story of J. Robert Oppenheimer and the atomic bomb.&quot;}, {&quot;title&quot;: &quot;The Batman&quot;, &quot;release_date&quot;: &quot;2022-03-01&quot;, &quot;rating&quot;: 7.7, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 772000000, &quot;budget&quot;: 200000000, &quot;overview&quot;: &quot;Batman uncovers corruption in Gotham City.&quot;}, {&quot;title&quot;: &quot;Dune: Part Two&quot;, &quot;release_date&quot;: &quot;2024-03-01&quot;, &quot;rating&quot;: 8.2, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 714000000, &quot;budget&quot;: 190000000, &quot;overview&quot;: &quot;Paul Atreides unites with the Fremen for war against House Harkonnen.&quot;}, {&quot;title&quot;: &quot;Everything Everywhere All at Once&quot;, &quot;release_date&quot;: &quot;2022-03-24&quot;, &quot;rating&quot;: 7.8, &quot;poster&quot;: &quot;&quot;, &quot;revenue&quot;: 143000000, &quot;budget&quot;: 25000000, &quot;overview&quot;: &quot;A laundromat owner must save the multiverse.&quot;}], &quot;show_counts&quot;: {}, &quot;avail_counts&quot;: {}}</script>
+<script>
+// Animated counters
+document.querySelectorAll("[data-count]").forEach(function(el){
+  var target = parseFloat(el.getAttribute("data-count")) || 0;
+  var dec = parseInt(el.getAttribute("data-dec") || "0", 10);
+  var start = null, dur = 900;
+  function tick(t){
+    if(!start) start = t;
+    var p = Math.min((t - start) / dur, 1);
+    var eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = (target * eased).toFixed(dec);
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+});
+// Bar fills animate on load
+requestAnimationFrame(function(){
+  requestAnimationFrame(function(){
+    document.querySelectorAll(".fill").forEach(function(f){
+      f.style.width = f.getAttribute("data-w") + "%";
+    });
+  });
+});
+// Live search filter
+var input = document.getElementById("search");
+input.addEventListener("input", function(){
+  var q = input.value.trim().toLowerCase();
+  document.querySelectorAll(".movie-card").forEach(function(card){
+    var hit = !q || card.getAttribute("data-search").indexOf(q) !== -1;
+    card.style.display = hit ? "" : "none";
+  });
+});
+</script>
+</body>
+</html>

@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS movies (
     release_date TEXT,
     overview TEXT,
     poster_path TEXT,
+    budget INTEGER,
+    revenue INTEGER,
+    rating REAL,
     first_seen_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -73,6 +76,16 @@ def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     conn.execute("PRAGMA foreign_keys = ON")
+    # Migrate databases created before budget/revenue/rating existed.
+    for column, coltype in (
+        ("budget", "INTEGER"),
+        ("revenue", "INTEGER"),
+        ("rating", "REAL"),
+    ):
+        try:
+            conn.execute(f"ALTER TABLE movies ADD COLUMN {column} {coltype}")
+        except sqlite3.OperationalError:
+            pass  # column already there
     return conn
 
 
@@ -80,13 +93,20 @@ def upsert_movie(conn: sqlite3.Connection, tmdb_id: int, **fields) -> int:
     """Insert or update a movie. Returns the local row id."""
     conn.execute(
         """
-        INSERT INTO movies (tmdb_id, title, release_date, overview, poster_path)
-        VALUES (:tmdb_id, :title, :release_date, :overview, :poster_path)
+        INSERT INTO movies
+            (tmdb_id, title, release_date, overview, poster_path,
+             budget, revenue, rating)
+        VALUES
+            (:tmdb_id, :title, :release_date, :overview, :poster_path,
+             :budget, :revenue, :rating)
         ON CONFLICT(tmdb_id) DO UPDATE SET
             title = excluded.title,
             release_date = excluded.release_date,
             overview = excluded.overview,
-            poster_path = excluded.poster_path
+            poster_path = excluded.poster_path,
+            budget = excluded.budget,
+            revenue = excluded.revenue,
+            rating = excluded.rating
         """,
         {
             "tmdb_id": tmdb_id,
@@ -94,6 +114,9 @@ def upsert_movie(conn: sqlite3.Connection, tmdb_id: int, **fields) -> int:
             "release_date": fields.get("release_date"),
             "overview": fields.get("overview"),
             "poster_path": fields.get("poster_path"),
+            "budget": fields.get("budget"),
+            "revenue": fields.get("revenue"),
+            "rating": fields.get("rating"),
         },
     )
     row = conn.execute(

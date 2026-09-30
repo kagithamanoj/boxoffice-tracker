@@ -5,12 +5,17 @@ Only real TMDB endpoints are used here:
   GET /movie/now_playing
   GET /trending/{media_type}/{time_window}
   GET /movie/popular
+  GET /search/movie
   GET /movie/{movie_id}
   GET /movie/{movie_id}/credits
+
+Budget and revenue come from the free, official movie_details fields.
 Docs: https://developer.themoviedb.org/reference/intro/getting-started
 """
 
 from __future__ import annotations
+
+import time
 
 import requests
 
@@ -58,6 +63,44 @@ class TMDBClient:
     def movie_credits(self, movie_id: int) -> dict:
         """Cast and crew for one movie."""
         return self._get(f"/movie/{movie_id}/credits")
+
+    def search_movie(self, query: str, page: int = 1) -> dict:
+        """Search movies by title. Used to resolve a title to a TMDB id."""
+        return self._get("/search/movie", {"query": query, "page": page})
+
+    def financials(self, movie_id: int) -> dict:
+        """Budget and revenue for one movie, from the free details fields.
+
+        Returns {"budget": int, "revenue": int, "profit": int|None}.
+        TMDB reports 0 when it does not know a figure, so 0 means unknown.
+        """
+        details = self.movie_details(movie_id)
+        budget = details.get("budget") or 0
+        revenue = details.get("revenue") or 0
+        profit = (revenue - budget) if (budget and revenue) else None
+        return {"budget": budget, "revenue": revenue, "profit": profit}
+
+    def top_grossing_now_playing(
+        self, limit: int = 10, region: str | None = None, pause: float = 0.3
+    ) -> list[dict]:
+        """Now-playing movies ranked by reported revenue, highest first.
+
+        Fetches one details call per title (budget and revenue live there),
+        pausing between calls to stay under the free-tier rate limit.
+        """
+        movies = self.now_playing(region=region or config.DEFAULT_REGION).get(
+            "results", []
+        )
+        ranked = []
+        for m in movies:
+            try:
+                fin = self.financials(m["id"])
+            except Exception:
+                fin = {"budget": 0, "revenue": 0, "profit": None}
+            ranked.append({**m, **fin})
+            time.sleep(pause)
+        ranked.sort(key=lambda x: x["revenue"], reverse=True)
+        return ranked[:limit]
 
 
 def all_pages(fetch, *args, max_pages: int = 5, **kwargs) -> list[dict]:
